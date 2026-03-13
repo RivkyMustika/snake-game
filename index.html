@@ -1,44 +1,72 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
-<title>Snake Multiplayer</title>
+<title>Snake Battle</title>
 
 <style>
 
 body{
+
 margin:0;
 background:#0a0a0a;
 color:white;
-font-family:sans-serif;
+font-family:Arial;
 text-align:center;
+
 }
 
 canvas{
+
 background:black;
 border:3px solid #00ff88;
 width:95vw;
 max-width:500px;
+
+}
+
+button{
+
+background:#00ff88;
+border:none;
+padding:10px 20px;
+font-size:16px;
+border-radius:6px;
 margin-top:10px;
-touch-action:none;
-}
-
-.score{
-
-display:flex;
-justify-content:space-around;
-font-size:18px;
 
 }
 
-.info{
+input{
 
-font-size:13px;
-opacity:.7;
-margin-top:5px;
+padding:8px;
+margin:5px;
+border-radius:5px;
+border:none;
+text-align:center;
+
+}
+
+#menu{
+
+margin-top:40px;
+
+}
+
+#gameUI{
+
+display:none;
+
+}
+
+#winner{
+
+font-size:22px;
+margin-top:10px;
 
 }
 
@@ -48,24 +76,47 @@ margin-top:5px;
 
 <body>
 
+<div id="menu">
+
 <h2>Snake Battle</h2>
 
-<div class="score">
+<div>
 
-<div id="s1">P1 : 0</div>
+<input id="name1" placeholder="Player 1">
 
-<div id="s2">P2 : 0</div>
+<input id="name2" placeholder="Player 2">
+
+</div>
+
+<button onclick="startGame()">
+
+Start Game
+
+</button>
+
+<p>
+
+Left screen = P1 swipe  
+Right screen = P2 swipe  
+
+</p>
 
 </div>
 
 
+<div id="gameUI">
 
+<h3 id="score"></h3>
 
 <canvas id="game" width="400" height="400"></canvas>
-<div class="info">
 
-Swipe left side = Player1  
-Swipe right side = Player2  
+<div id="winner"></div>
+
+<button onclick="restart()">
+
+Restart
+
+</button>
 
 </div>
 
@@ -78,27 +129,59 @@ const ctx=canvas.getContext("2d");
 
 const grid=20;
 
-let p1={
-x:40,
-y:200,
-dx:20,
-dy:0,
-cells:[],
-max:4,
-score:0
-};
+let running=false;
 
-let p2={
-x:340,
-y:200,
-dx:-20,
-dy:0,
-cells:[],
-max:4,
-score:0
-};
+let p1,p2,apple;
 
-let apple={x:200,y:200};
+let name1="P1";
+
+let name2="P2";
+
+function reset(){
+
+p1={x:40,y:200,dx:20,dy:0,cells:[],max:4,alive:true,score:0};
+
+p2={x:340,y:200,dx:-20,dy:0,cells:[],max:4,alive:true,score:0};
+
+apple={x:200,y:200};
+
+}
+
+function startGame(){
+
+name1=document.getElementById("name1").value||"Player1";
+
+name2=document.getElementById("name2").value||"Player2";
+
+document.getElementById("menu").style.display="none";
+
+document.getElementById("gameUI").style.display="block";
+
+reset();
+
+countdown(3);
+
+}
+
+function countdown(n){
+
+document.getElementById("winner").innerText=
+
+"Starting in "+n;
+
+if(n==0){
+
+running=true;
+
+document.getElementById("winner").innerText="";
+
+return;
+
+}
+
+setTimeout(()=>countdown(n-1),700);
+
+}
 
 function rand(){
 
@@ -110,17 +193,19 @@ apple.y=Math.floor(Math.random()*20)*grid;
 
 function move(s){
 
+if(!s.alive) return;
+
 s.x+=s.dx;
 
 s.y+=s.dy;
 
-if(s.x<0)s.x=380;
+if(s.x<0||s.x>380||s.y<0||s.y>380){
 
-if(s.x>380)s.x=0;
+s.alive=false;
 
-if(s.y<0)s.y=380;
+return;
 
-if(s.y>380)s.y=0;
+}
 
 s.cells.unshift({x:s.x,y:s.y});
 
@@ -132,21 +217,11 @@ s.cells.pop();
 
 }
 
-function draw(s,color){
-
-ctx.fillStyle=color;
-
-s.cells.forEach(c=>{
-
-ctx.fillRect(c.x,c.y,19,19);
-
-});
-
-}
-
 function eat(s){
 
-if(s.x===apple.x && s.y===apple.y){
+if(!s.alive)return;
+
+if(s.x==apple.x && s.y==apple.y){
 
 s.max++;
 
@@ -158,36 +233,15 @@ rand();
 
 }
 
-function selfHit(s){
+function collision(){
 
-for(let i=1;i<s.cells.length;i++){
-
-if(s.x===s.cells[i].x &&
-s.y===s.cells[i].y){
-
-s.cells=[];
-
-s.max=4;
-
-s.score=0;
-
-}
-
-}
-
-}
-
-function hitCheck(){
+if(!p1.alive||!p2.alive)return;
 
 p1.cells.forEach(c=>{
 
-if(p2.x===c.x && p2.y===c.y){
+if(p2.x==c.x && p2.y==c.y){
 
-p2.cells=[];
-
-p2.max=4;
-
-p2.score=0;
+p2.alive=false;
 
 }
 
@@ -195,13 +249,9 @@ p2.score=0;
 
 p2.cells.forEach(c=>{
 
-if(p1.x===c.x && p1.y===c.y){
+if(p1.x==c.x && p1.y==c.y){
 
-p1.cells=[];
-
-p1.max=4;
-
-p1.score=0;
+p1.alive=false;
 
 }
 
@@ -209,7 +259,23 @@ p1.score=0;
 
 }
 
-function loop(){
+function draw(s,color){
+
+if(!s.alive)return;
+
+ctx.fillStyle=color;
+
+s.cells.forEach(c=>{
+
+ctx.fillRect(c.x,c.y,19,19);
+
+});
+
+}
+
+function gameLoop(){
+
+if(!running)return;
 
 ctx.clearRect(0,0,400,400);
 
@@ -221,11 +287,7 @@ eat(p1);
 
 eat(p2);
 
-selfHit(p1);
-
-selfHit(p2);
-
-hitCheck();
+collision();
 
 ctx.fillStyle="red";
 
@@ -235,37 +297,53 @@ draw(p1,"#00ff88");
 
 draw(p2,"#00aaff");
 
-document.getElementById("s1").innerText="P1 : "+p1.score;
+document.getElementById("score").innerText=
 
-document.getElementById("s2").innerText="P2 : "+p2.score;
+name1+" : "+p1.score+
+" | "+
+name2+" : "+p2.score;
+
+if(!p1.alive||!p2.alive){
+
+running=false;
+
+let win=
+
+p1.score>p2.score?name1:name2;
+
+document.getElementById("winner").innerText=
+
+"Winner : "+win;
 
 }
 
-setInterval(loop,120);
+}
+
+setInterval(gameLoop,120);
 
 
 
 document.addEventListener("keydown",e=>{
 
-if(e.key==="ArrowUp" && p1.dy===0){
+if(e.key==="ArrowUp"&&p1.dy==0){
 
 p1.dy=-20;p1.dx=0;
 
 }
 
-if(e.key==="ArrowDown" && p1.dy===0){
+if(e.key==="ArrowDown"&&p1.dy==0){
 
 p1.dy=20;p1.dx=0;
 
 }
 
-if(e.key==="ArrowLeft" && p1.dx===0){
+if(e.key==="ArrowLeft"&&p1.dx==0){
 
 p1.dx=-20;p1.dy=0;
 
 }
 
-if(e.key==="ArrowRight" && p1.dx===0){
+if(e.key==="ArrowRight"&&p1.dx==0){
 
 p1.dx=20;p1.dy=0;
 
@@ -273,25 +351,25 @@ p1.dx=20;p1.dy=0;
 
 
 
-if(e.key==="w" && p2.dy===0){
+if(e.key==="w"&&p2.dy==0){
 
 p2.dy=-20;p2.dx=0;
 
 }
 
-if(e.key==="s" && p2.dy===0){
+if(e.key==="s"&&p2.dy==0){
 
 p2.dy=20;p2.dx=0;
 
 }
 
-if(e.key==="a" && p2.dx===0){
+if(e.key==="a"&&p2.dx==0){
 
 p2.dx=-20;p2.dy=0;
 
 }
 
-if(e.key==="d" && p2.dx===0){
+if(e.key==="d"&&p2.dx==0){
 
 p2.dx=20;p2.dy=0;
 
@@ -300,17 +378,19 @@ p2.dx=20;p2.dy=0;
 });
 
 
-let startX,startY,player;
+let sx,sy,player;
 
 canvas.addEventListener("touchstart",e=>{
 
 let t=e.touches[0];
 
-startX=t.clientX;
+sx=t.clientX;
 
-startY=t.clientY;
+sy=t.clientY;
 
-player = (t.clientX < window.innerWidth/2) ? 1 : 2;
+player=
+
+t.clientX<window.innerWidth/2?1:2;
 
 });
 
@@ -319,37 +399,35 @@ canvas.addEventListener("touchend",e=>{
 
 let t=e.changedTouches[0];
 
-let dx=t.clientX-startX;
+let dx=t.clientX-sx;
 
-let dy=t.clientY-startY;
+let dy=t.clientY-sy;
 
 if(Math.abs(dx)>Math.abs(dy)){
 
 if(dx>0){
 
-if(player===1 && p1.dx===0){
+if(player==1&&p1.dx==0){
 
 p1.dx=20;p1.dy=0;
 
 }
 
-if(player===2 && p2.dx===0){
+if(player==2&&p2.dx==0){
 
 p2.dx=20;p2.dy=0;
 
 }
 
-}
+}else{
 
-else{
-
-if(player===1 && p1.dx===0){
+if(player==1&&p1.dx==0){
 
 p1.dx=-20;p1.dy=0;
 
 }
 
-if(player===2 && p2.dx===0){
+if(player==2&&p2.dx==0){
 
 p2.dx=-20;p2.dy=0;
 
@@ -357,35 +435,31 @@ p2.dx=-20;p2.dy=0;
 
 }
 
-}
-
-else{
+}else{
 
 if(dy>0){
 
-if(player===1 && p1.dy===0){
+if(player==1&&p1.dy==0){
 
 p1.dy=20;p1.dx=0;
 
 }
 
-if(player===2 && p2.dy===0){
+if(player==2&&p2.dy==0){
 
 p2.dy=20;p2.dx=0;
 
 }
 
-}
+}else{
 
-else{
-
-if(player===1 && p1.dy===0){
+if(player==1&&p1.dy==0){
 
 p1.dy=-20;p1.dx=0;
 
 }
 
-if(player===2 && p2.dy===0){
+if(player==2&&p2.dy==0){
 
 p2.dy=-20;p2.dx=0;
 
@@ -396,6 +470,17 @@ p2.dy=-20;p2.dx=0;
 }
 
 });
+
+
+function restart(){
+
+reset();
+
+running=true;
+
+document.getElementById("winner").innerText="";
+
+}
 
 </script>
 
